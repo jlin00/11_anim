@@ -137,38 +137,25 @@ struct vary_node ** second_pass() {
   double change;
 
   for (int i=0;i<lastop;i++) {
+    if (op[i].opcode == VARY){
+      start_frame = op[i].op.vary.start_frame;
+      end_frame = op[i].op.vary.end_frame;
+      start_val = op[i].op.vary.start_val;
+      end_val = op[i].op.vary.end_val;
 
-    printf("%d: ",i);
-    switch (op[i].opcode)
-      {
-      case VARY:
-        printf("Vary: %4.0f %4.0f, %4.0f %4.0f",
-               op[i].op.vary.start_frame,
-               op[i].op.vary.end_frame,
-               op[i].op.vary.start_val,
-               op[i].op.vary.end_val);
+      strcpy(name, op[i].op.vary.p->name);
+      change = (end_val - start_val) / (end_frame - start_frame);
 
-        start_frame = op[i].op.vary.start_frame;
-        end_frame = op[i].op.vary.end_frame;
-        start_val = op[i].op.vary.start_val;
-        end_val = op[i].op.vary.end_val;
-
-        strcpy(name, op[i].op.vary.p->name);
-        change = (end_val - start_val) / (end_frame - start_frame);
-
-        int i; //indexing
-        for (i = start_frame; i <= end_frame; i++){
-          curr = malloc(sizeof(struct vary_node));
-          strcpy(curr->name, name);
-          curr->value = start_val + change * (i - start_frame);
-          curr->next = knobs[i];
-          knobs[i] = curr;
-        }
-        break;
+      int i; //indexing
+      for (i = start_frame; i <= end_frame; i++){
+        curr = malloc(sizeof(struct vary_node));
+        strcpy(curr->name, name);
+        curr->value = start_val + change * (i - start_frame);
+        curr->next = knobs[i];
+        knobs[i] = curr;
+      }
     }
-    printf("\n");
   }
-
   return knobs;
 }
 
@@ -234,10 +221,13 @@ void my_main() {
   g.green = 255;
   g.blue = 255;
 
+  systems = new_stack();
+  tmp = new_matrix(4, 1000);
+  clear_screen( t );
+  clear_zbuffer(zb);
+
   if (num_frames > 1){
     for (f = 0; f < num_frames; f++){
-      sprintf(frame_name, "anim/%s%03d.png", name, f); //naming the file
-
       //update symbol table
       vn = knobs[f];
       while (vn){
@@ -414,29 +404,23 @@ void my_main() {
             printf("Pop");
             pop(systems);
             break;
-          case SAVE:
-            printf("Save: %s",op[i].op.save.p->name);
-            save_extension(t, op[i].op.save.p->name);
-            break;
-          case DISPLAY:
-            printf("Display");
-            display(t);
-            break;
+          // case SAVE:
+          //   printf("Save: %s",op[i].op.save.p->name);
+          //   save_extension(t, op[i].op.save.p->name);
+          //   break;
+          // case DISPLAY:
+          //   printf("Display");
+          //   display(t);
+          //   break;
           }
-        save_extension(t, frame_name);
         printf("\n");
       } //end operation loop
-      free_stack( systems );
-      free_matrix( tmp );
+      sprintf(frame_name, "anim/%s%03d.png", name, f); //naming the file
+      save_extension(t, frame_name);
     }
     make_animation(name);
   }
   else {
-    systems = new_stack();
-    tmp = new_matrix(4, 1000);
-    clear_screen( t );
-    clear_zbuffer(zb);
-
     for (i=0;i<lastop;i++) {
 
       printf("%d: ",i);
@@ -601,7 +585,7 @@ void my_main() {
         }
       printf("\n");
     } //end operation loop
-    free_stack( systems );
-    free_matrix( tmp );
   }
+  free_stack( systems );
+  free_matrix( tmp );
 }
